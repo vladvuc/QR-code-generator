@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 QR Code Generator</h1>
+        <form id="qrForm">
+            <div class="form-group">
+                <label for="count">Number of QR codes to generate:</label>
+                <input type="number" id="count" name="count" min="1" max="10000" value="100" required>
+            </div>
+            <button type="submit" id="generateBtn">Generate QR Codes</button>
+        </form>
+        
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="download-links" id="downloadLinks">
+            <h3>Generated Files:</h3>
+            <a href="/qrs" target="_blank">View SVG QR Codes</a>
+            <a href="/out/qr-codes.csv" target="_blank">Download CSV</a>
+            <a href="/out/qr-codes.pdf" target="_blank">Download PDF</a>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <a href="/pdf-template" class="nav-link">📄 PDF Template Generator</a>
+    </div>
+
+    <script src="/js/qr-generator.js"></script>
+</body>
+</html>

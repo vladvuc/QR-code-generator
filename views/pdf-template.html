@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Template Generator</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📄 PDF Template Generator</h1>
+        <p>Upload a CSV file with QR codes and a PDF template to generate customized PDFs with QR codes placed in the center of each page.</p>
+        
+        <form id="pdfForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="csvFile">CSV File (with QR codes):</label>
+                <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+                <small>Expected format: QR Code,Assigned to takeback ID,Date Assigned,Status</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="pdfTemplate">PDF Template:</label>
+                <input type="file" id="pdfTemplate" name="pdfTemplate" accept=".pdf" required>
+                <small>QR codes will be placed in the center (4cm x 4cm area)</small>
+            </div>
+            
+            <button type="submit" id="generatePdfBtn">Generate PDF with QR Codes</button>
+        </form>
+        
+        <div class="progress" id="pdfProgress" style="display: none;">
+            <div class="progress-bar" id="pdfProgressBar"></div>
+        </div>
+        
+        <div id="pdfStatus"></div>
+        
+        <div class="download-links" id="pdfDownloadLinks" style="display: none;">
+            <h3>Generated PDF:</h3>
+            <a href="#" id="pdfDownloadLink" target="_blank">Download Generated PDF</a>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <a href="/" class="nav-link">🎯 QR Code Generator</a>
+    </div>
+
+    <script src="/js/pdf-template.js"></script>
+</body>
+</html>

@@ -2,10 +2,10 @@ import express from 'express';
 import { promises as fs } from 'fs';
 
 // Import route modules
-import pagesRouter from './routes/pages.ts';
-import qrGeneratorRouter from './routes/qr-generator.ts';
-import pdfTemplateRouter from './routes/pdf-template.ts';
-import qrListingRouter from './routes/qr-listing.ts';
+import pagesRouter from './routes/pages.js';
+import qrGeneratorRouter from './routes/qr-generator.js';
+import pdfTemplateRouter from './routes/pdf-template.js';
+import qrListingRouter from './routes/qr-listing.js';
 
 const app = express();
 const PORT = 3000;
