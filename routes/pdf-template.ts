@@ -48,7 +48,7 @@ router.post('/generate-pdf-template', upload.fields([
     
     console.log(`Found ${qrCodes.length} QR codes in CSV`);
     
-    // Generate PDF with QR codes
+    // Generate PDF with QR codes overlaid on template
     const outputFilename = `qr-template-${Date.now()}.pdf`;
     await generatePDFTemplate(qrCodes, pdfTemplate.path, outputFilename, OUT_DIR);
     
