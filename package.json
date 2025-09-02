@@ -1,7 +1,15 @@
 {
 	"type": "module",
+	"scripts": {
+		"dev": "ts-node app.ts",
+		"start": "node app.js",
+		"build": "tsc app.ts"
+	},
 	"dependencies": {
+		"@types/express": "^5.0.3",
+		"express": "^5.1.0",
 		"nanoid": "^5.1.5",
+		"p-limit": "^7.1.1",
 		"pdfkit": "^0.17.1",
 		"qrcode": "^1.5.4"
 	},
