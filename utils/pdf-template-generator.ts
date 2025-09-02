@@ -29,9 +29,9 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
     
     console.log(`Template page size: ${pageWidth} x ${pageHeight} points`);
     
-    // QR code dimensions: 4cm x 4cm converted to points
-    // 4cm = 4 * 28.35 = 113.4 points
-    const qrSize = 113.4; // 4cm in points
+    // QR code dimensions: 2cm x 2cm converted to points (reduced from 4cm)
+    // 2cm = 2 * 28.35 = 56.7 points
+    const qrSize = 56.7; // 2cm in points
     
     // Center coordinates
     const centerX = (pageWidth - qrSize) / 2;
