@@ -35,7 +35,7 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
     
     // Position coordinates for bottom 1/3 of the page
     const centerX = (pageWidth - qrSize) / 2; // Horizontally centered
-    const centerY = pageHeight / 3.5 - qrSize / 2; // Even lower in the bottom portion of the page
+    const centerY = pageHeight / 3.5 - qrSize / 2 + 4; // Even lower in the bottom portion of the page
     
     console.log(`QR codes will be placed at bottom 1/3 position: ${centerX}, ${centerY}`);
     console.log(`Processing ${qrCodes.length} QR codes...`);
@@ -53,9 +53,8 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
         const [copiedPage] = await outputPdf.copyPages(pdfDoc, [0]);
         const page = outputPdf.addPage(copiedPage);
         
-        // Generate QR code as PNG buffer
-        const qrUrl = BASE_URL + qrCode;
-        const qrBuffer = await toBuffer(qrUrl, {
+        // Generate QR code as PNG buffer - encode only the code value, not the URL
+        const qrBuffer = await toBuffer(qrCode, {
           type: 'png',
           errorCorrectionLevel: 'Q',
           margin: 1,
@@ -76,12 +75,12 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
           // Calculate text width to center it horizontally in the second segment
           const fontSize = 8;
           const textWidth = qrCode.length * (fontSize * 0.6); // More accurate width calculation
-          const textX = centerX + (qrSize - textWidth) / 2;
+          const textX = centerX + ((qrSize - textWidth) / 3);
           
           // Add QR code text in the second green segment below the QR code
           page.drawText(qrCode, {
             x: textX,
-            y: centerY - 20, // Reduced spacing between QR code and text
+            y: centerY - 30, // Reduced spacing between QR code and text
             size: fontSize,
             color: rgb(0, 0, 0),
           });        if ((i + 1) % 10 === 0) {
