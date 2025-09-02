@@ -9,7 +9,10 @@ import { generatePDF } from '../utils/pdf-generator.ts';
 const router = Router();
 
 // short, URL-safe ~10 chars (~64^10 space)
-const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-_', 10);
+const nanoid = customAlphabet(
+  "123456789ABCDEFGHIJKLMNPQRSTUVWXYZ",
+  10
+);;
 
 const BASE_URL = 'http://localhost:3000/r/';
 const SVG_OUT_DIR = './qrs-svg';

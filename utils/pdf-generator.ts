@@ -3,56 +3,95 @@ import path from 'path';
 
 const require = createRequire(import.meta.url);
 
-// Function to generate PDF with QR codes
+// Function to generate PDF with QR codes (styled like generate-qr-pdf.ts)
 export async function generatePDF(codes: Array<{ token: string; url: string; pngBuffer: Buffer }>, outputDir: string) {
   return new Promise<void>(async (resolve, reject) => {
     try {
       const PDFDocument = require('pdfkit');
       const fsSync = require('fs');
       
-      const doc = new PDFDocument({ 
-        margin: 50,
-        size: 'A4'
-      });
+      const doc = new PDFDocument({ size: "A4", margin: 36 }); // 0.5" margins
       
       const pdfPath = path.join(outputDir, 'qr-codes.pdf');
       const stream = fsSync.createWriteStream(pdfPath);
       doc.pipe(stream);
-      
-      // Add title
-      doc.fontSize(20).text('QR Codes', { align: 'center' });
-      doc.moveDown(2);
-      
-      let y = doc.y;
-      const pageHeight = doc.page.height - 100; // Account for margins
-      const itemHeight = 120; // Height per QR code item
-      const qrSize = 100; // QR code size
-      
+
+      const pageWidth = doc.page.width;
+      const pageHeight = doc.page.height;
+      const left = doc.page.margins.left;
+      const top = doc.page.margins.top;
+      const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+
+      const imageSize = 96;         // px -> points (1:1 for PNG)
+      const gap = 16;               // space between text and image
+      const rowPaddingY = 12;       // vertical padding inside a row
+      const rowHeight = imageSize + rowPaddingY * 2;
+
+      const textColWidth = usableWidth - gap - imageSize;
+
+      let xText = left;
+      let xImg = left + textColWidth + gap;
+      let y = top;
+
+      // Header
+      doc.fontSize(14).text("QR Codes", left, y);
+      y += 18;
+
+      // Column titles
+      doc.fontSize(10).fillColor("#000").text("Code", xText, y);
+      doc.text("QR", xImg, y);
+      y += 12;
+
+      // Divider
+      doc.moveTo(left, y).lineTo(left + usableWidth, y).stroke();
+      y += 6;
+
+      doc.fontSize(11);
+
       for (let i = 0; i < codes.length; i++) {
         const code = codes[i];
         if (!code) continue;
-        
-        // Check if we need a new page
-        if (y + itemHeight > pageHeight) {
+
+        // New page if needed
+        if (y + rowHeight > pageHeight - doc.page.margins.bottom) {
           doc.addPage();
-          y = 50;
+          y = top;
+
+          doc.fontSize(10).text("Code", xText, y);
+          doc.text("QR", xImg, y);
+          y += 12;
+          doc.moveTo(left, y).lineTo(left + usableWidth, y).stroke();
+          y += 6;
+          doc.fontSize(11);
         }
-        
-        // Add code text (left side)
-        doc.fontSize(14).text(`Code: ${code.token}`, 50, y + 10);
-        doc.fontSize(10).text(`URL: ${code.url}`, 50, y + 30, { width: 300 });
-        
+
+        // Row background (optional, light)
+        doc.save()
+          .rect(left, y, usableWidth, rowHeight)
+          .fillOpacity(0.03)
+          .fill("#000")
+          .restore();
+
+        // Code text (wrap if long; here it's short)
+        doc.fillOpacity(1).fillColor("#000");
+        doc.text(code.token, xText + 8, y + rowPaddingY, {
+          width: textColWidth - 16,
+          height: rowHeight - rowPaddingY * 2,
+          align: "left",
+          ellipsis: true,
+        });
+
         try {
-          // Add QR code image (right side)
-          doc.image(code.pngBuffer, 400, y, { width: qrSize, height: qrSize });
+          // QR image
+          doc.image(code.pngBuffer, xImg, y + rowPaddingY, { width: imageSize, height: imageSize });
         } catch (err) {
           console.warn(`Could not embed QR code for ${code.token}:`, err);
-          doc.rect(400, y, qrSize, qrSize).stroke();
-          doc.fontSize(8).text('[QR Code Error]', 420, y + 45, { width: 60, align: 'center' });
+          doc.rect(xImg, y + rowPaddingY, imageSize, imageSize).stroke();
+          doc.fontSize(8).text('[QR Error]', xImg + 10, y + rowPaddingY + imageSize/2 - 4);
         }
-        
-        y += itemHeight;
-        
+
+        y += rowHeight + 4; // small gap between rows
+
         if ((i + 1) % 50 === 0) {
           console.log(`Added ${i + 1}/${codes.length} codes to PDF`);
         }
