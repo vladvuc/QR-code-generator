@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to PDF - QR Code Generator</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Generate Plain PDF from CSV</h1>
+        <p>Upload a CSV file with codes to generate a plain PDF with QR codes (table-style layout)</p>
+        
+        <nav>
+            <a href="/">Generate QR Codes</a>
+            <a href="/pdf-template">PDF Template Overlay</a>
+            <a href="/csv-pdf" class="active">CSV to PDF</a>
+        </nav>
+
+        <div class="form-section">
+            <h2>Upload CSV File</h2>
+            <form id="csvForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="csvFile">CSV File:</label>
+                    <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+                    <small>Upload a CSV file with header row where the first column contains the QR codes</small>
+                </div>
+
+                <button type="submit" id="generateBtn" class="btn-primary">
+                    Generate PDF
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Generating PDF from CSV...</p>
+        </div>
+
+        <div id="result" class="result" style="display: none;">
+            <h3>Generation Complete!</h3>
+            <p id="resultMessage"></p>
+            <div class="result-actions">
+                <a id="downloadLink" href="#" target="_blank" class="btn-secondary">Download PDF</a>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h3>Error</h3>
+            <p id="errorMessage"></p>
+        </div>
+
+        <div class="info-section">
+            <h3>CSV Format</h3>
+            <p>Your CSV file should have a header row and codes in the first column. Example:</p>
+            <pre>QR Code,Assigned to takeback ID,Date Assigned,Status
+WRHZ266P3H,,,
+I7JHHVSFAE,,,
+8VM65E6G3P,,,
+...</pre>
+            <p><strong>Note:</strong> The header row will be automatically skipped. The QR codes will contain only the code values, not URLs.</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('csvForm');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const generateBtn = document.getElementById('generateBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Please select a CSV file');
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please select a valid CSV file');
+                return;
+            }
+
+            showLoading();
+            
+            try {
+                const formData = new FormData();
+                formData.append('csvFile', file);
+                
+                const response = await fetch('/generate-csv-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(data);
+                } else {
+                    showError(data.error || 'Failed to generate PDF');
+                }
+            } catch (err) {
+                showError('Network error: ' + err.message);
+            }
+        });
+
+        function showLoading() {
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            error.style.display = 'none';
+            generateBtn.disabled = true;
+        }
+
+        function showResult(data) {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            error.style.display = 'none';
+            generateBtn.disabled = false;
+            
+            document.getElementById('resultMessage').textContent = 
+                `${data.message} in ${data.duration}`;
+            document.getElementById('downloadLink').href = data.pdfFile;
+        }
+
+        function showError(message) {
+            loading.style.display = 'none';
+            result.style.display = 'none';
+            error.style.display = 'block';
+            generateBtn.disabled = false;
+            
+            document.getElementById('errorMessage').textContent = message;
+        }
+    </script>
+</body>
+</html>

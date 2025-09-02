@@ -11,7 +11,7 @@ const CSV_PATH = path.join(OUTPUT_DIR, "qr-codes.csv");
 
 // Short, URL-safe IDs (10 chars is plenty for uniqueness at this scale)
 const nanoid = customAlphabet(
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_",
+  "123456789ABCDEFGHIJKLMNPQRSTUVWXYZ",
   10
 );
 
