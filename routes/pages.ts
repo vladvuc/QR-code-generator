@@ -27,4 +27,13 @@ router.get('/pdf-template', async (req, res) => {
   }
 });
 
+router.get('/csv-pdf', async (req, res) => {
+  try {
+    const html = await fs.readFile(path.join(__dirname, '../views/csv-pdf.html'), 'utf8');
+    res.send(html);
+  } catch (error) {
+    res.status(500).send('Error loading page');
+  }
+});
+
 export default router;

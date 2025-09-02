@@ -49,16 +49,16 @@ router.post('/generate', async (req: any, res: any) => {
       const url = BASE_URL + token;
 
       jobs.push(limit(async () => {
-        // Generate SVG for file storage
-        const svg = await toString(url, {
+        // Generate SVG for file storage - using only the token, not URL
+        const svg = await toString(token, {
           type: 'svg',
           errorCorrectionLevel: 'Q',
           margin: 2,
           width: 512,
         });
         
-        // Generate PNG buffer for PDF (300 DPI quality)
-        const pngBuffer = await toBuffer(url, {
+        // Generate PNG buffer for PDF (300 DPI quality) - using only the token, not URL
+        const pngBuffer = await toBuffer(token, {
           type: 'png',
           errorCorrectionLevel: 'Q',
           margin: 1,
@@ -70,7 +70,7 @@ router.post('/generate', async (req: any, res: any) => {
         await fs.writeFile(svgFile, svg, 'utf8');
         
         // Store data for CSV and PDF generation
-        generatedCodes.push({ token, url, pngBuffer });
+        generatedCodes.push({ token, url: token, pngBuffer }); // url field now contains just the token
         
         // Log progress every 100 codes
         if ((i + 1) % 100 === 0) {

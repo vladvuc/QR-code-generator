@@ -6,6 +6,7 @@ import pagesRouter from './routes/pages.ts';
 import qrGeneratorRouter from './routes/qr-generator.ts';
 import pdfTemplateRouter from './routes/pdf-template.ts';
 import qrListingRouter from './routes/qr-listing.ts';
+import csvPdfGeneratorRouter from './routes/csv-pdf-generator.ts';
 
 const app = express();
 const PORT = 3000;
@@ -33,6 +34,7 @@ app.use('/', pagesRouter);
 app.use('/', qrGeneratorRouter);
 app.use('/', pdfTemplateRouter);
 app.use('/', qrListingRouter);
+app.use('/', csvPdfGeneratorRouter);
 
 // Start server
 ensureDirectories().then(() => {
