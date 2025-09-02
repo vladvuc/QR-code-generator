@@ -12,8 +12,15 @@ const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Setup multer for file uploads
+const multer = require('multer');
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
 // short, URL-safe ~10 chars (~64^10 space)
-const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-_', 10);
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10);
 
 const app = express();
 const PORT = 3000;
@@ -26,6 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/qrs', express.static(SVG_OUT_DIR));
 app.use('/out', express.static(OUT_DIR));
+app.use('/uploads', express.static('uploads'));
 
 // Serve the main page
 app.get('/', (req: any, res: any) => {
@@ -173,13 +181,56 @@ app.get('/', (req: any, res: any) => {
         </div>
     </div>
 
+    <!-- New PDF Template Section -->
+    <div class="container" style="margin-top: 30px;">
+        <h1>📄 PDF Template Generator</h1>
+        <p>Upload a CSV file with QR codes and a PDF template to generate customized PDFs with QR codes placed in the center of each page.</p>
+        
+        <form id="pdfForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="csvFile">CSV File (with QR codes):</label>
+                <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+                <small>Expected format: QR Code,Assigned to takeback ID,Date Assigned,Status</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="pdfTemplate">PDF Template:</label>
+                <input type="file" id="pdfTemplate" name="pdfTemplate" accept=".pdf" required>
+                <small>QR codes will be placed in the center (4cm x 10cm area)</small>
+            </div>
+            
+            <button type="submit" id="generatePdfBtn">Generate PDF with QR Codes</button>
+        </form>
+        
+        <div class="progress" id="pdfProgress" style="display: none;">
+            <div class="progress-bar" id="pdfProgressBar"></div>
+        </div>
+        
+        <div id="pdfStatus"></div>
+        
+        <div class="download-links" id="pdfDownloadLinks" style="display: none;">
+            <h3>Generated PDF:</h3>
+            <a href="#" id="pdfDownloadLink" target="_blank">Download Generated PDF</a>
+        </div>
+    </div>
+
     <script>
+        // Original form logic
         const form = document.getElementById('qrForm');
         const statusDiv = document.getElementById('status');
         const generateBtn = document.getElementById('generateBtn');
         const progressDiv = document.getElementById('progress');
         const progressBar = document.getElementById('progressBar');
         const downloadLinks = document.getElementById('downloadLinks');
+
+        // New PDF form logic
+        const pdfForm = document.getElementById('pdfForm');
+        const pdfStatusDiv = document.getElementById('pdfStatus');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const pdfProgressDiv = document.getElementById('pdfProgress');
+        const pdfProgressBar = document.getElementById('pdfProgressBar');
+        const pdfDownloadLinks = document.getElementById('pdfDownloadLinks');
+        const pdfDownloadLink = document.getElementById('pdfDownloadLink');
 
         function showStatus(message, type) {
             statusDiv.textContent = message;
@@ -234,6 +285,70 @@ app.get('/', (req: any, res: any) => {
                 setTimeout(() => {
                     progressDiv.style.display = 'none';
                     updateProgress(0);
+                }, 3000);
+            }
+        });
+
+        // PDF Form Functions
+        function showPdfStatus(message, type) {
+            pdfStatusDiv.textContent = message;
+            pdfStatusDiv.className = type;
+            pdfStatusDiv.style.display = 'block';
+        }
+
+        function updatePdfProgress(percent) {
+            pdfProgressBar.style.width = percent + '%';
+        }
+
+        // PDF Form Event Handler
+        pdfForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const csvFile = document.getElementById('csvFile').files[0];
+            const pdfTemplate = document.getElementById('pdfTemplate').files[0];
+            
+            if (!csvFile || !pdfTemplate) {
+                showPdfStatus('Please select both CSV and PDF files', 'error');
+                return;
+            }
+
+            generatePdfBtn.disabled = true;
+            generatePdfBtn.textContent = 'Generating...';
+            pdfProgressDiv.style.display = 'block';
+            pdfDownloadLinks.style.display = 'none';
+            
+            showPdfStatus('Processing files and generating PDF...', 'info');
+            updatePdfProgress(0);
+
+            try {
+                const formData = new FormData();
+                formData.append('csvFile', csvFile);
+                formData.append('pdfTemplate', pdfTemplate);
+
+                const response = await fetch('/generate-pdf-template', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+
+                const result = await response.json();
+                showPdfStatus(\`Successfully generated PDF with \${result.count} QR codes!\`, 'success');
+                
+                // Update download link
+                pdfDownloadLink.href = \`/out/\${result.filename}\`;
+                pdfDownloadLinks.style.display = 'block';
+                updatePdfProgress(100);
+            } catch (error) {
+                showPdfStatus('Error generating PDF: ' + error.message, 'error');
+            } finally {
+                generatePdfBtn.disabled = false;
+                generatePdfBtn.textContent = 'Generate PDF with QR Codes';
+                setTimeout(() => {
+                    pdfProgressDiv.style.display = 'none';
+                    updatePdfProgress(0);
                 }, 3000);
             }
         });
@@ -486,6 +601,155 @@ app.get('/qrs', async (req: any, res: any) => {
     `);
   }
 });
+
+// PDF Template Generation endpoint
+app.post('/generate-pdf-template', upload.fields([
+  { name: 'csvFile', maxCount: 1 },
+  { name: 'pdfTemplate', maxCount: 1 }
+]), async (req: any, res: any) => {
+  try {
+    const csvFile = req.files['csvFile']?.[0];
+    const pdfTemplate = req.files['pdfTemplate']?.[0];
+    
+    if (!csvFile || !pdfTemplate) {
+      return res.status(400).json({ error: 'Both CSV and PDF files are required' });
+    }
+
+    console.log('Processing PDF template generation...');
+    
+    // Read and parse CSV file
+    const csvContent = await fs.readFile(csvFile.path, 'utf8');
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    const headers = lines[0]?.split(',') || [];
+    
+    // Parse QR codes from CSV (assuming first column is QR Code)
+    const qrCodes = lines.slice(1)
+      .map(line => line.split(',')[0]?.trim())
+      .filter((code): code is string => code !== undefined && code.length > 0);
+    
+    if (qrCodes.length === 0) {
+      return res.status(400).json({ error: 'No QR codes found in CSV file' });
+    }
+    
+    console.log(`Found ${qrCodes.length} QR codes in CSV`);
+    
+    // Generate PDF with QR codes
+    const outputFilename = `qr-template-${Date.now()}.pdf`;
+    await generatePDFTemplate(qrCodes, pdfTemplate.path, outputFilename);
+    
+    // Clean up uploaded files
+    await fs.unlink(csvFile.path);
+    await fs.unlink(pdfTemplate.path);
+    
+    res.json({ 
+      success: true, 
+      count: qrCodes.length,
+      filename: outputFilename
+    });
+  } catch (error) {
+    console.error('Error generating PDF template:', error);
+    res.status(500).json({ error: 'Failed to generate PDF template' });
+  }
+});
+
+// Function to generate PDF template with QR codes
+async function generatePDFTemplate(qrCodes: string[], templatePath: string, outputFilename: string) {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      const PDFDocument = require('pdfkit');
+      const fsSync = require('fs');
+      
+      // Create new PDF document
+      const doc = new PDFDocument({ 
+        margin: 0,
+        size: 'A4'
+      });
+      
+      const outputPath = path.join(OUT_DIR, outputFilename);
+      const stream = fsSync.createWriteStream(outputPath);
+      doc.pipe(stream);
+      
+      // A4 dimensions in points (72 points = 1 inch)
+      const pageWidth = 595.28; // A4 width in points
+      const pageHeight = 841.89; // A4 height in points
+      
+      // QR code dimensions: 4cm x 10cm converted to points
+      // 4cm = 4 * 28.35 = 113.4 points
+      // 10cm = 10 * 28.35 = 283.5 points (but we'll use square QR codes)
+      const qrSize = 113.4; // 4cm in points
+      
+      // Center coordinates
+      const centerX = (pageWidth - qrSize) / 2;
+      const centerY = (pageHeight - qrSize) / 2;
+      
+      console.log(`Generating PDF with QR codes at center position: ${centerX}, ${centerY}`);
+      
+      for (let i = 0; i < qrCodes.length; i++) {
+        const qrCode = qrCodes[i];
+        
+        if (i > 0) {
+          doc.addPage();
+        }
+        
+        try {
+          // Generate QR code as PNG buffer
+          const qrUrl = BASE_URL + qrCode;
+          const qrBuffer = await toBuffer(qrUrl, {
+            type: 'png',
+            errorCorrectionLevel: 'Q',
+            margin: 1,
+            width: Math.round(qrSize * 2), // Higher resolution for better quality
+          });
+          
+          // Add QR code to center of page
+          doc.image(qrBuffer, centerX, centerY, { 
+            width: qrSize, 
+            height: qrSize 
+          });
+          
+          // Add QR code text below the image
+          doc.fontSize(10)
+             .text(qrCode, centerX, centerY + qrSize + 10, { 
+               width: qrSize, 
+               align: 'center' 
+             });
+          
+          if ((i + 1) % 10 === 0) {
+            console.log(`Generated ${i + 1}/${qrCodes.length} QR code pages`);
+          }
+          
+        } catch (err) {
+          console.warn(`Could not generate QR code for ${qrCode}:`, err);
+          // Add error placeholder
+          doc.rect(centerX, centerY, qrSize, qrSize).stroke();
+          doc.fontSize(12)
+             .text('QR Error', centerX + 10, centerY + qrSize/2 - 6);
+          doc.fontSize(10)
+             .text(qrCode, centerX, centerY + qrSize + 10, { 
+               width: qrSize, 
+               align: 'center' 
+             });
+        }
+      }
+      
+      doc.end();
+      
+      stream.on('finish', () => {
+        console.log(`PDF template generation completed: ${outputFilename}`);
+        resolve();
+      });
+      
+      stream.on('error', (err: any) => {
+        console.error('PDF template generation error:', err);
+        reject(err);
+      });
+      
+    } catch (error) {
+      console.error('PDF template generation error:', error);
+      reject(error);
+    }
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`🚀 QR Code Generator running at http://localhost:${PORT}`);
