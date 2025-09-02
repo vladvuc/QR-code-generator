@@ -29,15 +29,15 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
     
     console.log(`Template page size: ${pageWidth} x ${pageHeight} points`);
     
-    // QR code dimensions: 2cm x 2cm converted to points (reduced from 4cm)
-    // 2cm = 2 * 28.35 = 56.7 points
-    const qrSize = 56.7; // 2cm in points
+    // QR code dimensions: Slightly smaller to fit better in the first green segment
+    // Approximately 2.5cm = 2.5 * 28.35 = 71 points
+    const qrSize = 71; // 2.5cm in points - smaller to fit the green segment better
     
-    // Center coordinates
-    const centerX = (pageWidth - qrSize) / 2;
-    const centerY = (pageHeight - qrSize) / 2;
+    // Position coordinates for bottom 1/3 of the page
+    const centerX = (pageWidth - qrSize) / 2; // Horizontally centered
+    const centerY = pageHeight / 3.5 - qrSize / 2; // Even lower in the bottom portion of the page
     
-    console.log(`QR codes will be placed at center position: ${centerX}, ${centerY}`);
+    console.log(`QR codes will be placed at bottom 1/3 position: ${centerX}, ${centerY}`);
     console.log(`Processing ${qrCodes.length} QR codes...`);
     
     // Create a new PDF document for output
@@ -45,6 +45,8 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
     
     for (let i = 0; i < qrCodes.length; i++) {
       const qrCode = qrCodes[i];
+      
+      if (!qrCode) continue; // Skip if undefined
       
       try {
         // Copy the template page to the output PDF
@@ -63,23 +65,26 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
         // Embed the QR code image in the PDF
         const qrImage = await outputPdf.embedPng(qrBuffer);
         
-        // Draw the QR code on the page at the center
-        page.drawImage(qrImage, {
-          x: centerX,
-          y: centerY,
-          width: qrSize,
-          height: qrSize,
-        });
-        
-        // Optionally add QR code text below the image
-        page.drawText(qrCode, {
-          x: centerX,
-          y: centerY - 20,
-          size: 8,
-          color: rgb(0, 0, 0),
-        });
-        
-        if ((i + 1) % 10 === 0) {
+          // Draw the QR code on the page at the center
+          page.drawImage(qrImage, {
+            x: centerX,
+            y: centerY,
+            width: qrSize,
+            height: qrSize,
+          });
+          
+          // Calculate text width to center it horizontally in the second segment
+          const fontSize = 8;
+          const textWidth = qrCode.length * (fontSize * 0.6); // More accurate width calculation
+          const textX = centerX + (qrSize - textWidth) / 2;
+          
+          // Add QR code text in the second green segment below the QR code
+          page.drawText(qrCode, {
+            x: textX,
+            y: centerY - 20, // Reduced spacing between QR code and text
+            size: fontSize,
+            color: rgb(0, 0, 0),
+          });        if ((i + 1) % 10 === 0) {
           console.log(`Processed ${i + 1}/${qrCodes.length} QR codes`);
         }
         
@@ -94,7 +99,7 @@ export async function generatePDFTemplate(qrCodes: string[], templatePath: strin
         page.drawText(`QR Error: ${qrCode}`, {
           x: centerX,
           y: centerY,
-          size: 12,
+          size: 8, // Slightly smaller font size to match the main text
           color: rgb(1, 0, 0), // Red color for error
         });
       }

@@ -57,12 +57,12 @@ router.post('/generate', async (req: any, res: any) => {
           width: 512,
         });
         
-        // Generate PNG buffer for PDF
+        // Generate PNG buffer for PDF (300 DPI quality)
         const pngBuffer = await toBuffer(url, {
           type: 'png',
           errorCorrectionLevel: 'Q',
-          margin: 2,
-          width: 200,
+          margin: 1,
+          width: 400, // Higher resolution for 300 DPI crisp quality
         });
         
         // Save SVG file

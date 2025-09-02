@@ -46,7 +46,7 @@ export async function generatePDF(codes: Array<{ token: string; url: string; png
       doc.moveTo(left, y).lineTo(left + usableWidth, y).stroke();
       y += 6;
 
-      doc.fontSize(11);
+      doc.fontSize(11); // Back to original font size for table-style PDF
 
       for (let i = 0; i < codes.length; i++) {
         const code = codes[i];
@@ -62,7 +62,7 @@ export async function generatePDF(codes: Array<{ token: string; url: string; png
           y += 12;
           doc.moveTo(left, y).lineTo(left + usableWidth, y).stroke();
           y += 6;
-          doc.fontSize(11);
+          doc.fontSize(11); // Back to original font size for table-style PDF
         }
 
         // Row background (optional, light)
